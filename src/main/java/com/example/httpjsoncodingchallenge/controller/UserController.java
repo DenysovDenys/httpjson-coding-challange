@@ -1,9 +1,6 @@
 package com.example.httpjsoncodingchallenge.controller;
 
 import com.example.httpjsoncodingchallenge.entity.User;
-import org.springframework.boot.configurationprocessor.json.JSONArray;
-import org.springframework.boot.configurationprocessor.json.JSONException;
-import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -12,90 +9,62 @@ import java.util.*;
 @RequestMapping(produces="application/json")
 public class UserController {
 
-    private static JSONArray mainJsonArray = new JSONArray();
-    private static final String KEY_NAME = "result";
+    private static final List<User> USERS = new ArrayList<>();
     private static final int TOP20 = 20;
 
     @GetMapping("/userinfo/{user_id}")
-    public String getUsersById(@PathVariable String user_id) throws JSONException {
-        return Objects.requireNonNull(findUsersById(Integer.parseInt(user_id))).toString();
+    public List<User> getUsersById(@PathVariable String user_id) {
+        return findUsersById(Integer.parseInt(user_id));
     }
 
     @GetMapping("/levelinfo/{level_id}")
-    public String getUsersByLevel(@PathVariable String level_id) throws JSONException {
-        return Objects.requireNonNull(findUsersByLevel(Integer.parseInt(level_id))).toString();
+    public List<User> getUsersByLevel(@PathVariable String level_id) {
+        return findUsersByLevel(Integer.parseInt(level_id));
     }
 
     @RequestMapping(value = "/setinfo", method = RequestMethod.POST)
-    public String setUser(@RequestBody User user) throws JSONException {
-        mainJsonArray.put(newUser(user.getUser_id(), user.getLevel_id(), user.getResult()));
+    public String setUser(@RequestBody User user) {
+        USERS.add(new User(user.getUser_id(), user.getLevel_id(), user.getResult()));
         return "User has been added.";
     }
 
-    private static JSONObject newUser(Object user_id, Object level_id, Object result) throws JSONException {
-        JSONObject userDetails = new JSONObject();
-        userDetails.put("user_id", user_id);
-        userDetails.put("level_id", level_id);
-        userDetails.put("result", result);
+    private static List<User> findUsersById(int user_id) {
+        List<User> foundUsers = new ArrayList<>();
 
-        return userDetails;
-    }
-
-    private static JSONArray findUsersById(int user_id) throws JSONException {
-        JSONArray arrayFindedUsers = new JSONArray();
-
-        for (int i = 0; i < mainJsonArray.length(); i++) {
-            JSONObject user = mainJsonArray.getJSONObject(i);
-
-            if (user.get("user_id").equals(user_id)) {
-                arrayFindedUsers.put(newUser(user.get("user_id"), user.get("level_id"), user.get("result")));
+        for (User user : USERS) {
+            if (user.getUser_id() == user_id) {
+                foundUsers.add(new User(user.getUser_id(), user.getLevel_id(), user.getResult()));
             }
         }
 
-        return sortList(arrayFindedUsers);
+        return sortList(foundUsers);
     }
 
-    private static JSONArray findUsersByLevel(int level_id) throws JSONException {
-        JSONArray arrayFindedUsers = new JSONArray();
+    private static List<User> findUsersByLevel(int level_id) {
+        List<User> foundUsers = new ArrayList<>();
 
-        for (int i = 0; i < mainJsonArray.length(); i++) {
-            JSONObject user = mainJsonArray.getJSONObject(i);
-
-            if (user.get("level_id").equals(level_id)) {
-                arrayFindedUsers.put(newUser(user.get("user_id"), user.get("level_id"), user.get("result")));
+        for (User user : USERS) {
+            if (user.getLevel_id() == level_id) {
+                foundUsers.add(new User(user.getUser_id(), user.getLevel_id(), user.getResult()));
             }
         }
 
-        return sortList(arrayFindedUsers);
+        return sortList(foundUsers);
     }
 
-    private static JSONArray sortList(JSONArray arrayFindedUsers) throws JSONException {
-        List<JSONObject> sortedList = new ArrayList<>();
-        JSONArray result = new JSONArray();
-
-        for (int i = 0; i < arrayFindedUsers.length(); i++) {
-            sortedList.add(arrayFindedUsers.getJSONObject(i));
-        }
-        sortedList.sort((lhs, rhs) -> {
-            Integer lid;
-            Integer rid;
-            try {
-                lid = (Integer) lhs.get(KEY_NAME);
-                rid = (Integer) rhs.get(KEY_NAME);
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
+    private static List<User> sortList(List<User> foundUsers) {
+        foundUsers.sort((lhs, rhs) -> {
+            Integer lid = lhs.getResult();
+            Integer rid = rhs.getResult();
             return rid.compareTo(lid);
         });
 
-        int lengthOfArrayFindedUsers = arrayFindedUsers.length();
-        if (lengthOfArrayFindedUsers < TOP20) {
-            for(int i = 0; i < lengthOfArrayFindedUsers; i++) {
-                result.put(sortedList.get(i));
-            }
+        List<User> result = new ArrayList<>();
+        if (foundUsers.size() < TOP20) {
+            result.addAll(foundUsers);
         } else {
             for(int i = 0; i < TOP20; i++) {
-                result.put(sortedList.get(i));
+                result.add(foundUsers.get(i));
             }
         }
         return result;
